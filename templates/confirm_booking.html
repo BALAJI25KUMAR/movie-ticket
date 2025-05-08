@@ -68,6 +68,12 @@
         <p><strong>Date:</strong> {{ date }}</p>
         <p><strong>Time:</strong> {{ time }}</p>
         <p><strong>Seats:</strong> {{ seats }}</p>
+        
+        <!-- Add the price per seat here -->
+        <p><strong>Price per Seat:</strong> ₹{{ price_per_seat }}</p>
+        
+        <!-- Calculate the total price -->
+        <p><strong>Total Price:</strong> ₹{{ price_per_seat * seats }}</p>
 
         <form method="POST" action="{{ url_for('payment') }}">
             <input type="hidden" name="movie_name" value="{{ movie_name }}">
@@ -76,6 +82,8 @@
             <input type="hidden" name="date" value="{{ date }}">
             <input type="hidden" name="time" value="{{ time }}">
             <input type="hidden" name="seats" value="{{ seats }}">
+            <input type="hidden" name="price_per_seat" value="{{ price_per_seat }}">
+            <input type="hidden" name="total_price" value="{{ price_per_seat * seats }}">
             <button type="submit">Pay Now</button>
         </form>
     </div>
