@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Show</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        select,
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            margin-bottom: 20px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        p {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>{{ movie.movie_name }}</h2>
+
+    {% if error %}
+        <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('booking') }}">
+        <input type="hidden" name="movie_name" value="{{ movie.movie_name }}">
+
+        <label for="city">City:</label>
+        <select name="city" id="city" required onchange="updateTheatres()">
+            {% for loc in movie.locations %}
+                <option value="{{ loc.city }}">{{ loc.city }}</option>
+            {% endfor %}
+        </select><br>
+
+        <label for="theatre">Theatre:</label>
+        <select name="theatre" id="theatre" required>
+            <!-- Filled dynamically via JS -->
+        </select><br>
+
+        <label for="date">Date:</label>
+        <select name="date" id="date" required>
+            <!-- Filled dynamically -->
+        </select><br>
+
+        <label for="time">Time:</label>
+        <select name="time" id="time" required>
+            <!-- Filled dynamically -->
+        </select><br>
+
+        <label for="seats">Seats:</label>
+        <input type="number" name="seats" min="1" required><br><br>
+
+        <button type="submit">Book Now</button>
+    </form>
+
+    <script>
+        const movieData = {{ movie | tojson }};
+        const citySelect = document.getElementById('city');
+        const theatreSelect = document.getElementById('theatre');
+        const dateSelect = document.getElementById('date');
+        const timeSelect = document.getElementById('time');
+
+        function updateTheatres() {
+            const selectedCity = citySelect.value;
+            const locations = movieData.locations.filter(loc => loc.city === selectedCity);
+
+            theatreSelect.innerHTML = '';
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc.theatre;
+                opt.text = loc.theatre;
+                theatreSelect.appendChild(opt);
+            });
+
+            updateDates();
+        }
+
+        function updateDates() {
+            const selectedCity = citySelect.value;
+            const selectedTheatre = theatreSelect.value;
+            const location = movieData.locations.find(loc => loc.city === selectedCity && loc.theatre === selectedTheatre);
+
+            dateSelect.innerHTML = '';
+            const uniqueDates = [...new Set(location.shows.map(s => s.date))];
+            uniqueDates.forEach(date => {
+                const opt = document.createElement('option');
+                opt.value = date;
+                opt.text = date;
+                dateSelect.appendChild(opt);
+            });
+
+            updateTimes();
+        }
+
+        function updateTimes() {
+            const selectedCity = citySelect.value;
+            const selectedTheatre = theatreSelect.value;
+            const selectedDate = dateSelect.value;
+            const location = movieData.locations.find(loc => loc.city === selectedCity && loc.theatre === selectedTheatre);
+            const shows = location.shows.filter(show => show.date === selectedDate);
+
+            timeSelect.innerHTML = '';
+            shows.forEach(show => {
+                const opt = document.createElement('option');
+                opt.value = show.time;
+                opt.text = show.time + ' (Seats Left: ' + show.available_seats + ')';
+                timeSelect.appendChild(opt);
+            });
+        }
+
+        citySelect.addEventListener('change', updateTheatres);
+        theatreSelect.addEventListener('change', updateDates);
+        dateSelect.addEventListener('change', updateTimes);
+
+        updateTheatres(); // Initial call
+    </script>
+</body>
+</html>
