@@ -29,8 +29,12 @@ def index():
 def select_movie():
     movie_name = request.form.get("movie_name")
     movie = movie_collection.find_one({"movie_name": movie_name})
-    convert_objectid_to_str(movie)
-    return render_template("select_location.html", movie=movie)
+    
+    if movie:
+        convert_objectid_to_str(movie)
+        return render_template("select_location.html", movie=movie)
+    else:
+        return render_template("index.html", error="Movie not found")
 
 @app.route("/booking", methods=["POST"])
 def booking():
@@ -41,22 +45,29 @@ def booking():
     time = request.form.get("time")
     seats = int(request.form.get("seats"))
 
+    # Fetch movie details from MongoDB
     movie = movie_collection.find_one({"movie_name": movie_name})
+
+    if not movie:
+        return render_template("index.html", error="Movie not found")
 
     show = None
     price_per_seat = 0  # Initialize the price_per_seat variable
 
-    for loc in movie["locations"]:
-        if loc["city"] == city and loc["theatre"] == theatre:
-            for s in loc["shows"]:
-                if s["date"] == date and s["time"] == time:
+    # Ensure that the location and show data are valid
+    for loc in movie.get("locations", []):
+        if loc.get("city") == city and loc.get("theatre") == theatre:
+            for s in loc.get("shows", []):
+                if s.get("date") == date and s.get("time") == time:
                     show = s
-                    price_per_seat = s["price_per_seat"]  # Extract the price per seat
+                    price_per_seat = s.get("price_per_seat", 0)
                     break
 
-    if show and show["available_seats"] >= seats:
-        # Pass price_per_seat to the confirmation page
-        return render_template("confirm_booking.html", movie_name=movie_name, city=city, theatre=theatre, date=date, time=time, seats=seats, price_per_seat=price_per_seat)
+    if show and show.get("available_seats", 0) >= seats:
+        # Calculate the total price
+        total_price = price_per_seat * seats
+        # Pass price_per_seat and total_price to the confirmation page
+        return render_template("confirm_booking.html", movie_name=movie_name, city=city, theatre=theatre, date=date, time=time, seats=seats, price_per_seat=price_per_seat, total_price=total_price)
     else:
         convert_objectid_to_str(movie)
         error = "Not enough seats available for this show."
@@ -74,21 +85,24 @@ def payment():
 
     movie = movie_collection.find_one({"movie_name": movie_name})
 
-    for loc in movie["locations"]:
-        if loc["city"] == city and loc["theatre"] == theatre:
-            for s in loc["shows"]:
-                if s["date"] == date and s["time"] == time:
-                    if s["available_seats"] >= seats:
-                        s["available_seats"] -= seats  # update locally
+    if not movie:
+        return render_template("index.html", error="Movie not found")
+
+    for loc in movie.get("locations", []):
+        if loc.get("city") == city and loc.get("theatre") == theatre:
+            for s in loc.get("shows", []):
+                if s.get("date") == date and s.get("time") == time:
+                    if s.get("available_seats", 0) >= seats:
+                        s["available_seats"] -= seats  # Update seats
                         break
 
-    # Update movie document in DB
+    # Update the movie document in the database
     movie_collection.update_one(
         {"movie_name": movie_name},
         {"$set": {"locations": movie["locations"]}}
     )
 
-    # Insert booking into DB
+    # Insert the booking record into the database
     booking = {
         "movie_name": movie_name,
         "city": city,
