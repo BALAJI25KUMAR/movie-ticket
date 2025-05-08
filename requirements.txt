@@ -1,6 +1,15 @@
+# Core web framework
 Flask==2.2.5
-Werkzeug==2.2.3
 
-pymongo==4.3.3
-bson==0.5.10
+# Production server
 gunicorn==20.1.0
+
+# MongoDB client (includes bson)
+pymongo==4.3.3
+
+# Required by Flask
+Jinja2==3.1.6
+MarkupSafe==3.0.2
+itsdangerous==2.2.0
+Werkzeug==2.2.3
+click==8.1.8
