@@ -44,16 +44,19 @@ def booking():
     movie = movie_collection.find_one({"movie_name": movie_name})
 
     show = None
+    price_per_seat = 0  # Initialize the price_per_seat variable
+
     for loc in movie["locations"]:
         if loc["city"] == city and loc["theatre"] == theatre:
             for s in loc["shows"]:
                 if s["date"] == date and s["time"] == time:
                     show = s
+                    price_per_seat = s["price_per_seat"]  # Extract the price per seat
                     break
 
     if show and show["available_seats"] >= seats:
-        # Save to session or pass to next page
-        return render_template("confirm_booking.html", movie_name=movie_name, city=city, theatre=theatre, date=date, time=time, seats=seats)
+        # Pass price_per_seat to the confirmation page
+        return render_template("confirm_booking.html", movie_name=movie_name, city=city, theatre=theatre, date=date, time=time, seats=seats, price_per_seat=price_per_seat)
     else:
         convert_objectid_to_str(movie)
         error = "Not enough seats available for this show."
@@ -67,6 +70,7 @@ def payment():
     date = request.form.get("date")
     time = request.form.get("time")
     seats = int(request.form.get("seats"))
+    price_per_seat = int(request.form.get("price_per_seat"))
 
     movie = movie_collection.find_one({"movie_name": movie_name})
 
@@ -92,12 +96,15 @@ def payment():
         "date": date,
         "time": time,
         "seats": seats,
+        "price_per_seat": price_per_seat,  # Store price_per_seat in the booking record
         "payment_status": "Success",
         "created_at": datetime.now()
     }
     booking_collection.insert_one(booking)
 
-    return render_template("payment.html", status="Success", movie_name=movie_name)
+    total_price = price_per_seat * seats
+
+    return render_template("payment.html", status="Success", movie_name=movie_name, total_price=total_price)
 
 if __name__ == "__main__":
     app.run(debug=True)
